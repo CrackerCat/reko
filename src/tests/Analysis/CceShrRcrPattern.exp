@@ -8,7 +8,7 @@ r2:r2
     def:  def r2
     uses: v7_11 = SEQ(r1, r2) >>u 1<8>
 r2_5: orig: r2
-    def:  r2_5 = (word32) v7_11
+    def:  r2_5 = CONVERT(v7_11, uint64, word32)
     uses: Mem7[0x3000<32>:word32] = r2_5
 C_6: orig: C
 Mem7: orig: Mem0
@@ -20,7 +20,7 @@ v6_10: orig: v6
 v7_11: orig: v7
     def:  v7_11 = SEQ(r1, r2) >>u 1<8>
     uses: r1_2 = SLICE(v7_11, word32, 32)
-          r2_5 = (word32) v7_11
+          r2_5 = CONVERT(v7_11, uint64, word32)
 // main
 // Return size: 0
 define main
@@ -31,7 +31,7 @@ main_entry:
 l1:
 	v7_11 = SEQ(r1, r2) >>u 1<8>
 	r1_2 = SLICE(v7_11, word32, 32)
-	r2_5 = (word32) v7_11
+	r2_5 = CONVERT(v7_11, uint64, word32)
 	Mem7[0x3000<32>:word32] = r2_5
 	Mem8[0x3004<32>:word32] = r1_2
 	return

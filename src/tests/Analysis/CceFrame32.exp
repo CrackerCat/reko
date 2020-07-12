@@ -65,21 +65,21 @@ Z_13: orig: Z
 dwLoc04_40: orig: dwLoc04
 Mem15: orig: Mem0
     def:  Mem15 = PHI((Mem11, l10000017), (Mem31, l10000049))
-    uses: edx_18 = (int32) Mem15[ecx_17 + eax_16:byte]
+    uses: edx_18 = CONVERT(Mem15[ecx_17 + eax_16:byte], byte, int32)
 eax_16: orig: eax
-    def:  eax_16 = (int32) wLoc08_44
-    uses: edx_18 = (int32) Mem15[ecx_17 + eax_16:byte]
+    def:  eax_16 = CONVERT(wLoc08_44, word16, int32)
+    uses: edx_18 = CONVERT(Mem15[ecx_17 + eax_16:byte], byte, int32)
 ecx_17: orig: ecx
     def:  ecx_17 = dwArg04
-    uses: edx_18 = (int32) Mem15[ecx_17 + eax_16:byte]
+    uses: edx_18 = CONVERT(Mem15[ecx_17 + eax_16:byte], byte, int32)
 edx_18: orig: edx
-    def:  edx_18 = (int32) Mem15[ecx_17 + eax_16:byte]
+    def:  edx_18 = CONVERT(Mem15[ecx_17 + eax_16:byte], byte, int32)
     uses: branch edx_18 == 0<32> l1000005A
 SZO_19: orig: SZO
 C_20: orig: C
 Z_21: orig: Z
 eax_22: orig: eax
-    def:  eax_22 = (int32) wLoc08_44
+    def:  eax_22 = CONVERT(wLoc08_44, word16, int32)
     uses: branch eax_22 >= 0x7FFF<32> l1000005A
 SCZO_23: orig: SCZO
 SO_24: orig: SO
@@ -108,8 +108,8 @@ ebp_38: orig: ebp
 esp_39: orig: esp
 wLoc08_44: orig: wLoc08
     def:  wLoc08_44 = PHI((wLoc08_42, l10000017), (wLoc08_47, l10000049))
-    uses: eax_16 = (int32) wLoc08_44
-          eax_22 = (int32) wLoc08_44
+    uses: eax_16 = CONVERT(wLoc08_44, word16, int32)
+          eax_22 = CONVERT(wLoc08_44, word16, int32)
           cx_28 = wLoc08_44
 wLoc08_47: orig: wLoc08
     def:  wLoc08_47 = cx_28 + 1<16>
@@ -130,13 +130,13 @@ l10000027:
 l1000002F:
 	wLoc08_44 = PHI((wLoc08_42, l10000017), (wLoc08_47, l10000049))
 	Mem15 = PHI((Mem11, l10000017), (Mem31, l10000049))
-	eax_16 = (int32) wLoc08_44
+	eax_16 = CONVERT(wLoc08_44, word16, int32)
 	ecx_17 = dwArg04
-	edx_18 = (int32) Mem15[ecx_17 + eax_16:byte]
+	edx_18 = CONVERT(Mem15[ecx_17 + eax_16:byte], byte, int32)
 	branch edx_18 == 0<32> l1000005A
 	// succ:  l1000003E l1000005A
 l1000003E:
-	eax_22 = (int32) wLoc08_44
+	eax_22 = CONVERT(wLoc08_44, word16, int32)
 	branch eax_22 >= 0x7FFF<32> l1000005A
 	// succ:  l10000049 l1000005A
 l10000049:

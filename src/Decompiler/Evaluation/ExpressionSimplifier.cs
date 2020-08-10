@@ -62,7 +62,7 @@ namespace Reko.Evaluation
         private BinOpWithSelf_Rule binopWithSelf;
         private ConstDivisionImplementedByMultiplication constDiv;
         private IdProcConstRule idProcConstRule;
-        private CastCastRule castCastRule;
+        private ConvertConvertRule convertConvertRule;
         private DistributedCastRule distributedCast;
         private DistributedSliceRule distributedSlice;
         private MkSeqFromSlices_Rule mkSeqFromSlicesRule;
@@ -97,7 +97,7 @@ namespace Reko.Evaluation
             this.binopWithSelf = new BinOpWithSelf_Rule();
             this.constDiv = new ConstDivisionImplementedByMultiplication(ctx);
             this.idProcConstRule = new IdProcConstRule(ctx);
-            this.castCastRule = new CastCastRule(ctx);
+            this.convertConvertRule = new ConvertConvertRule(ctx);
             this.distributedCast = new DistributedCastRule();
             this.distributedSlice = new DistributedSliceRule();
             this.mkSeqFromSlicesRule = new MkSeqFromSlices_Rule(ctx);
@@ -447,12 +447,12 @@ namespace Reko.Evaluation
             throw new ArgumentException(string.Format("Can't add types of different domains {0} and {1}", l.DataType, r.DataType));
         }
 
-        public virtual Expression VisitCast(Cast cast)
+        public virtual Expression VisitConversion(Conversion conversion)
         {
-            var exp = cast.Expression.Accept(this);
+            var exp = conversion.Expression.Accept(this);
             if (exp != Constant.Invalid)
             {
-                var ptCast = cast.DataType.ResolveAs<PrimitiveType>();
+                var ptCast = conversion.DataType.ResolveAs<PrimitiveType>();
                 if (exp is Constant c && ptCast != null)
                 {
                     if (c.DataType is PrimitiveType ptSrc)
@@ -484,7 +484,7 @@ namespace Reko.Evaluation
                     // If we are casting a SEQ, and the corresponding element is >= 
                     // the size of the cast, then use deposited part directly.
                     var lsbElem = seq.Expressions[seq.Expressions.Length - 1];
-                    int sizeDiff = lsbElem.DataType.Size - cast.DataType.Size;
+                    int sizeDiff = lsbElem.DataType.Size - conversion.DataType.Size;
                     if (sizeDiff >= 0)
                     {
                         foreach (var elem in seq.Expressions)
@@ -495,7 +495,7 @@ namespace Reko.Evaluation
                         Changed = true;
                         if (sizeDiff > 0)
                         {
-                            return new Cast(cast.DataType, lsbElem);
+                            return new Cast(conversion.DataType, lsbElem);
                         }
                         else
                         {
@@ -503,27 +503,27 @@ namespace Reko.Evaluation
                         }
                     }
                 }
-                if (exp is ProcedureConstant pc && cast.DataType.BitSize == pc.DataType.BitSize)
+                if (exp is ProcedureConstant pc && conversion.DataType.BitSize == pc.DataType.BitSize)
                 {
                     // (wordnn) procedure_const => procedure_const
                     return pc;
                 }
-                if (exp.DataType.BitSize == cast.DataType.BitSize)
+                if (exp.DataType.BitSize == conversion.DataType.BitSize)
                 {
                     // Redundant word-casts can be stripped.
-                    if (cast.DataType.IsWord())
+                    if (conversion.DataType.IsWord())
                     {
                         return exp;
                     }
                 }
-                cast = new Cast(cast.DataType, exp);
+                conversion = new Conversion(exp, exp.DataType, conversion.DataType);
             }
-            if (castCastRule.Match(cast))
+            if (convertConvertRule.Match(conversion))
             {
                 Changed = true;
-                return castCastRule.Transform();
+                return convertConvertRule.Transform();
             }
-            return cast;
+            return conversion;
         }
 
         /// <summary>
@@ -549,6 +549,12 @@ namespace Reko.Evaluation
             {
                 return new Cast(ptCast, cImm);
             }
+        }
+
+        public virtual Expression VisitCast(Cast cast)
+        {
+            var e = cast.Expression.Accept(this);
+            return new Cast(cast.DataType, e);
         }
 
         public virtual Expression VisitConditionalExpression(ConditionalExpression c)
@@ -579,14 +585,6 @@ namespace Reko.Evaluation
         public virtual Expression VisitConstant(Constant c)
         {
             return c;
-        }
-
-        public virtual Expression VisitConversion(Conversion conversion)
-        {
-            var e = conversion.Expression.Accept(this);
-            if (e == Constant.Invalid)
-                return conversion;
-            return new Conversion(e, conversion.SourceDataType, conversion.DataType);
         }
 
         public virtual Expression VisitDereference(Dereference deref)
@@ -872,6 +870,16 @@ namespace Reko.Evaluation
             // Is the slice the same size as the expression?
             if (slice.Offset == 0 && slice.DataType.BitSize == e.DataType.BitSize)
                 return e;
+            if (e is Constant c && c.IsValid)
+            {
+                var pt = slice.DataType.ResolveAs<PrimitiveType>();
+                if (pt != null && (pt.Domain & Domain.Integer) != 0 && pt.BitSize <= c.DataType.BitSize)
+                {
+                    var cNew =  Constant.Create(pt, c.ToUInt64() >> slice.Offset);
+                    cNew.DataType = slice.DataType;
+                    return cNew;
+                }
+            }
             slice = new Slice(slice.DataType, e, slice.Offset);
             if (sliceConst.Match(slice))
             {
@@ -894,6 +902,32 @@ namespace Reko.Evaluation
             {
                 Changed = true;
                 return sliceSeq.Transform();
+            }
+
+            if (e is Identifier id &&
+                ctx.GetDefiningExpression(id) is MkSequence seq)
+            {
+                // If we are casting a SEQ, and the corresponding element is >= 
+                // the size of the cast, then use deposited part directly.
+                var lsbElem = seq.Expressions[seq.Expressions.Length - 1];
+                int sizeDiff = lsbElem.DataType.Size - slice.DataType.Size;
+                if (sizeDiff >= 0)
+                {
+                    foreach (var elem in seq.Expressions)
+                    {
+                        ctx.RemoveExpressionUse(elem);
+                    }
+                    ctx.UseExpression(lsbElem);
+                    Changed = true;
+                    if (sizeDiff > 0)
+                    {
+                        return new Slice(slice.DataType, lsbElem, slice.Offset);
+                    }
+                    else
+                    {
+                        return lsbElem;
+                    }
+                }
             }
             return slice;
         }

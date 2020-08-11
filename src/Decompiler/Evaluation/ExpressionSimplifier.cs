@@ -495,7 +495,7 @@ namespace Reko.Evaluation
                         Changed = true;
                         if (sizeDiff > 0)
                         {
-                            return new Cast(conversion.DataType, lsbElem);
+                            return new Conversion(lsbElem, lsbElem.DataType, conversion.DataType);
                         }
                         else
                         {
@@ -547,7 +547,7 @@ namespace Reko.Evaluation
             }
             else
             {
-                return new Cast(ptCast, cImm);
+                return new Conversion(cImm, cImm.DataType, ptCast);
             }
         }
 
@@ -696,11 +696,10 @@ namespace Reko.Evaluation
             {
                 var tail = newSeq.Last();
                 // leading zeros imply a conversion to unsigned.
-                return new Cast(
-                    PrimitiveType.Create(Domain.UnsignedInt, seq.DataType.BitSize),
-                    new Cast(
-                        PrimitiveType.Create(Domain.UnsignedInt, tail.DataType.BitSize),
-                        tail));
+                return new Conversion(
+                    tail,
+                    PrimitiveType.Create(Domain.UnsignedInt, tail.DataType.BitSize),
+                    PrimitiveType.Create(Domain.UnsignedInt, seq.DataType.BitSize));
             }
             return FuseAdjacentSlices(seq.DataType, newSeq);
         }
